@@ -1,0 +1,89 @@
+Data cleaning
+#TO CHECK NULL VALUES
+SELECT 
+  SUM(Rating IS NULL) AS null_rating,
+  SUM(Company_Name IS NULL) AS null_company_name,
+  SUM(Job_Title IS NULL) AS null_job_title,
+  SUM(Salary IS NULL) AS null_salary,
+  SUM(Salaries_Reported IS NULL) AS null_salaries_reported,
+  SUM(Location IS NULL) AS null_location,
+  SUM(Employment_Status IS NULL) AS null_employment_status,
+  SUM(Job_Roles IS NULL) AS null_job_roles
+FROM salary_dataset;
+
+
+#Convert all text to lowercase and remove unwanted spaces
+create table Salary_lower as
+SELECT 
+  Rating,
+  LOWER(TRIM(Company_Name)) AS company_name,
+  LOWER(TRIM(Job_Title)) AS job_title,
+  Salary,
+  Salaries_Reported,
+  LOWER(TRIM(Location)) AS location,
+  LOWER(TRIM(Employment_Status)) AS employment_status,
+  LOWER(TRIM(Job_Roles)) AS job_roles
+FROM salary_dataset;
+
+
+#Remove Outliers
+create table salary_outliers as
+select * from salary_lower 
+where (salary > 100000 and salary <10000000);
+
+#Converting into same value 
+update salary_outliers 
+set job_title="android developer-contractor"
+where job_title in 
+('android developer contractor','android developer-contractor');
+
+update salary_outliers 
+set job_title="senior android developer - contractor"
+where job_title ="senior android developer contractor";
+
+
+
+#Filter Invalid Entries
+delete from salary_outliers where
+Rating<=0 or Rating>5 or Salaries_Reported=0;
+
+#Final check 
+SELECT 
+  COUNT(*) AS total_rows,
+  MIN(Salary) AS min_salary,
+  MAX(Salary) AS max_salary,
+  AVG(Salary) AS avg_salary,
+  COUNT(DISTINCT company_name) AS unique_companies
+FROM salary_outliers;
+
+
+Data analysis
+1)Salary Trends by Job Role
+SELECT job_title ,round(avg(salary),2) as avg_salary from salary_outliers 
+group by job_title 
+order by avg_salary desc;
+
+2)Top-Paying Locations
+SELECT location,round(avg(salary),2) as avg_salary from salary_outliers 
+group by location
+order by avg_salary desc;
+
+3)Company Comparison by Salary
+SELECT company_name, ROUND(AVG(salary), 0) AS avg_salary
+FROM salary_outliers
+GROUP BY company_name
+HAVING COUNT(*) > 5
+ORDER BY avg_salary DESC
+LIMIT 10;
+
+4)Number of companies in each city
+SELECT location, COUNT(DISTINCT company_name) AS company_count
+FROM salary_outliers
+GROUP BY location
+ORDER BY company_count DESC;
+
+5)Comparsion based on Employment status
+SELECT employment_status, ROUND(AVG(salary), 0) AS avg_salary
+FROM salary_outliers
+GROUP BY employment_status
+order by avg_salary desc;
